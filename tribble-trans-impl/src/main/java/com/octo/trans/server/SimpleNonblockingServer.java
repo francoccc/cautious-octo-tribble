@@ -23,7 +23,7 @@ public class SimpleNonblockingServer extends AbstractNonblockingServer {
     @Override
     protected boolean startThread() {
         try {
-            selectorThread = new SelectorThread((INonblockingServerTrans) serverTrans);
+            selectorThread = new SelectorThread((INonblockingServerTrans) serverTrans, this);
             selectorThread.start();
             return true;
         } catch (IOException | IllegalAccessException | InvocationTargetException | InstantiationException e) {
@@ -35,6 +35,7 @@ public class SimpleNonblockingServer extends AbstractNonblockingServer {
     protected void waitForShutdown() {
         if (selectorThread != null) {
             try {
+                LOGGER.debug("Wait for the select thread shutdown");
                 selectorThread.join();
             } catch (InterruptedException e) {
                 LOGGER.error("SelectorThread Interrupted", e);
@@ -49,10 +50,10 @@ public class SimpleNonblockingServer extends AbstractNonblockingServer {
 
         private Acceptor acceptor;
 
-        public SelectorThread(INonblockingServerTrans nonblockingServerTrans) throws IOException, IllegalAccessException, InvocationTargetException, InstantiationException {
+        public SelectorThread(INonblockingServerTrans nonblockingServerTrans, AbstractNonblockingServer server) throws IOException, IllegalAccessException, InvocationTargetException, InstantiationException {
             this.nonblockingServerTrans = nonblockingServerTrans;
-            SelectionKey sk = nonblockingServerTrans.registerSelector(selector);
-            acceptor = acceptorConstructor.newInstance(nonblockingServerTrans, sk);
+            nonblockingServerTrans.registerSelector(selector);
+            acceptor = acceptorConstructor.newInstance(server, selector);
         }
 
         @Override

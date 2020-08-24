@@ -8,6 +8,7 @@ import com.octo.trans.IServerTrans;
 import com.octo.trans.exception.TransException;
 import com.octo.trans.handler.NonblockingSocketHandler;
 import com.octo.trans.handler.NonblockingSocketHandlerFactory;
+import com.octo.trans.handler.StateEventHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -16,7 +17,6 @@ import java.lang.reflect.Constructor;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.spi.SelectorProvider;
-import java.util.function.Supplier;
 
 /**
  * AbstractNonBlockingServer
@@ -29,15 +29,16 @@ public abstract class AbstractNonblockingServer extends IServer {
 
     protected Constructor<? extends Acceptor> acceptorConstructor;
     private NonblockingSocketHandlerFactory factory;
+    private StateEventHandler stateEventHandler;
 
     public static class NonblockingServerArgs extends AbstractServerArgs<NonblockingServerArgs> {
 
         private Class<? extends Acceptor> acceptorClazz = Acceptor.class;
         private NonblockingSocketHandlerFactory factory = new NonblockingSocketHandler.Factory();
         // 服务处理handler
-        private NonblockingSocketHandler.StateEventHandler stateEventHandler;
+        private StateEventHandler stateEventHandler;
 
-        public NonblockingServerArgs(IServerTrans serverTrans, NonblockingSocketHandler.StateEventHandler stateEventHandler) {
+        public NonblockingServerArgs(IServerTrans serverTrans, StateEventHandler stateEventHandler) {
             super(serverTrans);
         }
 
@@ -54,20 +55,23 @@ public abstract class AbstractNonblockingServer extends IServer {
 
     public AbstractNonblockingServer(NonblockingServerArgs args) {
         super(args);
-        try {
-            this.acceptorConstructor
-                    = args.acceptorClazz.getDeclaredConstructor(INonblockingServerTrans.class, Selector.class);
-        } catch (NoSuchMethodException nsme) {
-            LOGGER.warn("Acceptor has no constructor.", nsme);
-        }
         this.factory = args.factory;
+        this.stateEventHandler = args.stateEventHandler;
+        try {
+            this.acceptorConstructor = args.acceptorClazz.getDeclaredConstructor(AbstractNonblockingServer.class, Selector.class);
+        } catch (NoSuchMethodException ignored) { }
+        if (this.acceptorConstructor == null) {
+            this.acceptorConstructor = (Constructor<? extends Acceptor>) args.acceptorClazz.getConstructors()[0];
+        }
     }
 
 
     public void serve() {
         if (!startThread()) {
+            LOGGER.warn("Select thread did not start.");
             return;
         }
+        LOGGER.debug("Select thread started.");
 
         if (!startListening()) {
             return;
@@ -95,6 +99,7 @@ public abstract class AbstractNonblockingServer extends IServer {
     protected boolean startListening() {
         try {
             serverTrans.listen();
+            LOGGER.info("Server listen on port: {}", serverTrans.getPort());
             return true;
         } catch (TransException e) {
             LOGGER.error("Failed to listen on ServerSocket", e);
@@ -140,7 +145,7 @@ public abstract class AbstractNonblockingServer extends IServer {
                 clientTrans = ((INonblockingServerTrans) serverTrans).accept();
                 clientKey = clientTrans.registerSelector(selector, SelectionKey.OP_READ);
 //                Runnable handler = handlerSupplier.get();
-                NonblockingSocketHandler handler = factory.createHandler(clientTrans, null);
+                NonblockingSocketHandler handler = factory.createHandler(clientTrans, stateEventHandler);
                 clientKey.attach(handler);
             } catch (IOException e) {
                 // TODO handler
@@ -149,4 +154,11 @@ public abstract class AbstractNonblockingServer extends IServer {
         }
     }
 
+    public static void main(String[] args) {
+        try {
+            Constructor<Acceptor> acceptorConstructor = Acceptor.class.getConstructor(AbstractNonblockingServer.class, Selector.class);
+        } catch (NoSuchMethodException e) {
+            e.printStackTrace();
+        }
+    }
 }

@@ -32,6 +32,7 @@ public class NonblockingServerSocket extends INonblockingServerTrans {
     public static class NonblockingServerSocketArgs extends AbstractServerTransArgs<NonblockingServerSocketArgs> {}
 
     public NonblockingServerSocket(NonblockingServerSocketArgs args) throws TransException {
+        super(args);
         this.clientTimeout = args.clientTimeout;
         try {
             serverSocketChannel = ServerSocketChannel.open();
@@ -49,7 +50,7 @@ public class NonblockingServerSocket extends INonblockingServerTrans {
     @Override
     public void listen() throws TransException {
         if (serverSocket == null) {
-            return;
+            throw new TransException("Listen port but ServerSocket is null");
         }
         try {
             serverSocket.setSoTimeout(clientTimeout);

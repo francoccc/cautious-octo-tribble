@@ -13,6 +13,10 @@ import java.nio.channels.Selector;
  */
 public abstract class INonblockingServerTrans extends IServerTrans {
 
+    public INonblockingServerTrans(NonblockingServerSocket.NonblockingServerSocketArgs args) {
+        super(args);
+    }
+
     /**
      * 使用Selector轮询的方式，所以通过此方法注册selector
      * @param selector

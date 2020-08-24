@@ -13,6 +13,9 @@ import java.net.InetSocketAddress;
  */
 public abstract class IServerTrans implements Closeable {
 
+    // 端口号
+    private int port;
+
     // 服务器参数
     public static abstract class AbstractServerTransArgs<T extends AbstractServerTransArgs<T>> {
         int backlog = 0;
@@ -40,6 +43,12 @@ public abstract class IServerTrans implements Closeable {
         }
     }
 
+    protected IServerTrans() {}
+
+    public IServerTrans(AbstractServerTransArgs args) {
+        this.port = args.bindAddr.getPort();
+    }
+
     /**
      * 调用listen方法
      */
@@ -53,4 +62,8 @@ public abstract class IServerTrans implements Closeable {
     public abstract ITrans accept() throws TransException;
 
     public abstract void close();
+
+    public int getPort() {
+        return port;
+    }
 }

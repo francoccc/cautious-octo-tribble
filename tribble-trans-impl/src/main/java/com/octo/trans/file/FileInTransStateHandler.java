@@ -31,6 +31,7 @@ public class FileInTransStateHandler implements StateEventHandler {
     public FileInTransStateHandler(String destPath) {
         this.destPath = destPath;
         this.init = false;
+        LOGGER.debug("Local file path: {}", destPath);
     }
 
     @Override

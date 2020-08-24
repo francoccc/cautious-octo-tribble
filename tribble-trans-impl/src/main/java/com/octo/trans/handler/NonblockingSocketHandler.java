@@ -24,7 +24,7 @@ public class NonblockingSocketHandler implements IORunnable {
     }
 
     public NonblockingSocketHandler(NonblockingSocket clientTrans, SocketState state, StateEventHandler handler) {
-        this.state = SocketState.READ_AWAITING;
+        this.state = state;
         this.isInputCompleted = false;
         this.isOutputCompleted = false;
         this.clientTrans = clientTrans;
